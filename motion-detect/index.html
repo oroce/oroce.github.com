@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+
+  <style type='text/css'>
+    #hidden, #hidden2{
+        display:none;
+    }
+  </style>
+  
+</head>
+<body>
+    video: 
+    <div id="webcam">
+        <video width=300 height=230 autoplay></video>
+    </div>
+    diff:
+    <canvas id="main" width=300 height=230></canvas>
+    
+<canvas id="hidden" width=300 height=230></canvas>
+<canvas id="hidden2" width=300 height=230></canvas>
+  
+<script 
+<script type='text/javascript' src="getusermedia.js"></script>
+<script type='text/javascript'>
+
+    var renderToCanvas = function() {
+        if (options.context === "webrtc") {
+            ctxHidden.drawImage(video, 0, 0, width, height);
+            if (first) {
+                first = false;
+                ctxHidden2.drawImage(video, 0, 0, width, height);
+                return;
+            }
+            highlightDiff();
+        }
+        else {
+            
+            options.capture();
+            return;
+        }
+    }
+    var highlightDiff = function() {
+
+        var pixels = ctxHidden.getImageData(0, 0, width, height);
+        var endData = ctxHidden.getImageData(0, 0, width, height);
+        var oldPixels = ctxHidden2.getImageData(0, 0, width, height);
+        ctxHidden2.putImageData(pixels, 0, 0);
+        var w = width,
+            h = height,
+            p = w * h,
+            pix = p * 4,
+            pix1, pix2, data = oldPixels.data,
+            data2 = pixels.data,
+            r3, g3, b3;
+        while (p--) {
+            if ((r3 = data[pix -= 4] - data2[pix]) < 0) data2[pix] = -r3;
+            else data2[pix] = r3;
+            if ((g3 = data[pix1 = pix + 1] - data2[pix1]) < 0) data2[pix1] = -g3;
+            else data2[pix1] = g3;
+            if ((b3 = data[pix2 = pix + 2] - data2[pix2]) < 0) data2[pix2] = -b3;
+            else data2[pix2] = b3;
+        }
+        for (var i = 0; i < data2.length; i += 4) {
+            if (data2[i] > 10 && data2[i + 1] > 10 && data2[i + 2] > 10) {
+                endData.data[i + 1] = endData.data[i + 2] = 0;
+                endData.data[i] = 200;
+            }
+        }
+
+        ctx.putImageData(endData, 0, 0);
+    };
+
+
+    var video = document.querySelector("video"),
+        canvas = document.querySelector("#main"),
+        canvasHidden = document.querySelector("#hidden"),
+        canvasHidden2 = document.querySelector("#hidden2"),
+        ctx = canvas.getContext("2d"),
+        ctxHidden = canvasHidden.getContext("2d"),
+        ctxHidden2 = canvasHidden2.getContext("2d"),
+        first = true,
+        width = 300,
+        height = 240,
+        interval,img,pos = 0;
+    
+    ctx.clearRect(0, 0, width, height );
+    
+    img = ctx.getImageData(0, 0, width, height);
+    
+    video.addEventListener("play", function() {
+
+
+    }, false);
+    video.addEventListener("ended", function() {
+        clearInterval(interval);
+
+    }, false);
+
+    var options = {
+        swffile: "jscam_canvas_only.swf",
+        el: "webcam",
+        extern: null,
+        video: true,
+        audio: true,
+        append: true,
+        width: width,
+        height: height,
+        mode: "stream",
+        quality: 85,
+        append: true,
+        debug: function(){
+            //console.log( "debug", arguments );
+        },
+        onLoad:function(){
+            
+        },
+        onCapture: function() {
+            options.save();
+        },
+        onSave: function(data) {
+            
+            var col = data.split(";");
+            
+            
+            for (var i = 0; i < width; i++) {
+                var tmp = parseInt(col[i]);
+                img.data[pos + 0] = (tmp >> 16) & 0xff;
+                img.data[pos + 1] = (tmp >> 8) & 0xff;
+                img.data[pos + 2] = tmp & 0xff;
+                img.data[pos + 3] = 0xff;
+                pos += 4;
+            }
+            
+            if (pos >= 4 * height * width) {
+                
+                ctxHidden.putImageData(img, 0, 0);
+                pos = 0;
+                if (first) {
+                    ctxHidden2.putImageData(img, 0, 0);
+                    first = false;
+                    return;
+                }
+                highlightDiff();
+            }
+        },
+    };
+    
+    getUserMedia(options, function(stream) {
+
+        if( options.context === "webrtc") {
+            var url = window.URL || window.webkitURL;
+            video.src = url ? url.createObjectURL(stream) : stream;
+        }
+        
+        interval = setInterval(renderToCanvas, +( options.context === "flash" )* 100 + 90);
+
+    }, function() {
+        alert( "can't get video" );
+    });
+    window.webcam = options;
+
+
+</script>
+
+
+</body>
+
+
+</html>
+
